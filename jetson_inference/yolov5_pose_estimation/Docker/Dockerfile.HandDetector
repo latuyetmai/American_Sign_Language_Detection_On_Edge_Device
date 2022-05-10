@@ -1,0 +1,114 @@
+FROM nvcr.io/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3
+#FROM nvcr.io/nvidia/l4t-pytorch:r32.6.1-pth1.9-py3
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY requirements.txt requirements.txt
+
+
+### Installing packages for yolov5
+#RUN apt update && apt install -y libssl-dev
+RUN apt-get update && apt-get install -y libssl-dev libffi-dev python3-pip curl unzip python3-tk libopencv-dev python3-opencv
+RUN python3 -m pip install -U pip
+RUN python3 -m pip install -U gsutil pyyaml tqdm cython   
+RUN apt-get install -y python3-scipy python3-matplotlib python3-numpy
+# Adding tensorboad
+RUN python3 -m pip install pycocotools tensorboard tensorboardX webcolors
+RUN python3 -m pip install git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
+
+# RUN pip3 install requests
+RUN apt-get install -y python3-pandas
+RUN python3 -m pip install seaborn
+RUN pip list
+RUN python3 -m pip install tensorrt
+RUN python3 -m pip install onnx onnxruntime onnx-simplifier
+
+# Installing dependencies 
+RUN python3 -m pip install -r requirements.txt
+
+# Installing jupyterlab
+RUN apt-get update
+RUN python3 -m pip install jupyter jupyterlab
+
+# Set up for running jupyter lab 
+# Run the below command after spinning up the container & before running jupyter lab
+# export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
+
+
+
+### Installing packages for bazel
+
+MAINTAINER <mediapipe@google.com>
+ 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+ffmpeg \
+vim \
+zip
+
+RUN apt-get install -y python3-dev \
+libopencv-core-dev \
+libopencv-highgui-dev \
+libopencv-imgproc-dev \
+libopencv-video-dev \
+libopencv-calib3d-dev \
+libopencv-features2d-dev \
+software-properties-common
+
+RUN add-apt-repository -y ppa:openjdk-r/ppa
+
+RUN apt-get update && apt-get install -y openjdk-8-jdk && \
+apt-get clean && \
+rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install --upgrade setuptools
+RUN python3 -m pip install future
+RUN pip3 install six==1.14.0
+#RUN python3 -m pip install wheel
+#RUN pip install tensorflow==1.14.0
+#RUN pip3 install tf_slim
+
+#RUN ln -s /usr/bin/python3 /usr/bin/python
+
+#Install bazel
+RUN wget https://github.com/bazelbuild/bazel/releases/download/4.0.0/bazel-4.0.0-dist.zip
+
+#ARG BAZEL_VERSION=4.0.0
+RUN mkdir /bazel
+RUN mv bazel-4.0.0-dist.zip /bazel && cd /bazel && unzip bazel-4.0.0-dist.zip
+
+WORKDIR /bazel
+#RUN env EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk" bash ./compile.sh
+RUN ./compile.sh
+RUN cp output/bazel /usr/local/bin/ 
+RUN rm -f /bazel/bazel-4.0.0-dist.zip
+
+
+
+### Installing Mediapipe
+# Installing Mediapipe requirements
+RUN apt-get install -y cmake
+RUN apt-get update && apt-get install --no-install-recommends --assume-yes protobuf-compiler libprotobuf-dev
+
+# Copy mediapipe repo for installing
+# RUN git clone https://github.com/google/mediapipe.git
+COPY /mediapipe /bazel/mediapipe
+WORKDIR /bazel/mediapipe
+
+RUN sed -i -e "/\"imgcodecs\"/d;/\"calib3d\"/d;/\"features2d\"/d;/\"highgui\"/d;/\"video\"/d;/\"videoio\"/d" third_party/BUILD
+RUN sed -i -e "/-ljpeg/d;/-lpng/d;/-ltiff/d;/-lImath/d;/-lIlmImf/d;/-lHalf/d;/-lIex/d;/-lIlmThread/d;/-lrt/d;/-ldc1394/d;/-lavcodec/d;/-lavformat/d;/-lavutil/d;/-lswscale/d;/-lavresample/d" third_party/BUILD
+
+RUN python3 setup.py gen_protos && python3 setup.py bdist_wheel
+
+WORKDIR /bazel/mediapipe/dist
+RUN wget -O mediapipe-0.8-cp36-cp36m-linux_aarch64.whl https://www.dropbox.com/s/calsimvsabmhycm/mediapipe-0.8-cp36-cp36m-lin
+RUN python3 -m pip install mediapipe-0.8-cp36-cp36m-linux_aarch64.whl
+
+# tested on Jetson NX
+# Create working directory
+WORKDIR /app
+
+### NOTE: Run the dependencies_setup.sh after spinning up the container to remove the conflicted pillow version
+COPY dependencies_setup.sh dependencies_setup.sh
+#RUN bash dependencies_setup.sh
+
+

@@ -1,0 +1,5 @@
+train: ./data/asl7/train/images
+val: ./data/asl7/valid/images
+
+nc: 40
+names: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'eight', 'five', 'four', 'hello', 'help', 'nine', 'one', 'right', 'seven', 'six', 'thanks', 'three', 'two', 'zero']

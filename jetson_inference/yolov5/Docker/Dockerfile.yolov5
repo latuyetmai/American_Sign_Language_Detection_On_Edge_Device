@@ -1,0 +1,40 @@
+FROM nvcr.io/nvidia/l4t-pytorch:r32.6.1-pth1.9-py3
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# tested on Jetson NX
+# Create working directory
+WORKDIR /app
+
+RUN apt update && apt install -y libssl-dev
+
+#RUN git clone https://github.com/ultralytics/yolov5 --branch v3.0
+#WORKDIR /app/yolov5
+COPY requirements.txt requirements.txt
+
+RUN apt-get update && apt-get install -y libffi-dev python3-pip curl unzip python3-tk libopencv-dev python3-opencv
+RUN python3 -m pip install -U pip
+RUN python3 -m pip install -U gsutil pyyaml tqdm cython #torchvision   
+RUN apt-get install -y python3-scipy python3-matplotlib python3-numpy
+# Adding tensorboad
+RUN python3 -m pip install pycocotools tensorboard tensorboardX webcolors
+RUN python3 -m pip install git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
+
+
+# RUN pip3 install requests
+RUN apt-get install -y python3-pandas
+RUN python3 -m pip install seaborn
+RUN pip list
+RUN python3 -m pip install tensorrt
+RUN python3 -m pip install onnx onnxruntime onnx-simplifier
+# Install dependencies (pip or conda)
+RUN python3 -m pip install -r requirements.txt
+
+
+# Adding jupyterlab
+RUN apt-get update
+RUN python3 -m pip install jupyter jupyterlab
+
+# Set up for running jupyter lab 
+# Run the below command after spinning up the container & before running jupyter lab
+# RUN export LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
