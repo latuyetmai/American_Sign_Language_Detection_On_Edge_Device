@@ -1,0 +1,12 @@
+mkdir data
+cd data
+git clone https://github.com/ultralytics/yolov5
+cd ..
+git clone https://github.com/UC-Berkeley-I-School/w251_team_kpop_project.git
+cd data/yolov5/ 
+sudo docker build -f Dockerfile -t yolov5:v1 .
+cp ~/w251_team_kpop_project/models/yolov5/YoloV5_Roboflow_W_B\ _latest.ipynb .
+cd ~
+docker run --net=host --gpus=all --ipc=host -v ~/data:/data -p 8882:8888 -ti yolov5:v1 bash
+jupyter lab --no-browser --ip=0.0.0.0 --allow-root
+
